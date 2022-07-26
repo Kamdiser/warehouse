@@ -1,0 +1,182 @@
+division = {1: 'Киренского 15',2: 'Ленина 124',3: 'Толстого 8'}
+reestr = {}
+awaiting_shipment = {}
+
+class OwnError(Exception):
+    def __init__(self, txt):
+        self.txt = txt
+
+
+def input_int(my_dict=None, name=None):
+    i = 0
+    while i == 0:
+        inp_data = input(f"Введите {name}: ")
+        try:
+            inp_data = int(inp_data)
+            if inp_data < 0:
+                raise OwnError("Вы ввели отрицательное число!")
+        except ValueError:
+            print("Вы ввели не число")
+        except OwnError as err:
+            print(err)
+        else:
+            if my_dict == None:
+                i = 1
+            elif type(my_dict) == int and my_dict >= inp_data:
+                i = 1
+            elif type(my_dict) == int and my_dict < inp_data:
+                print(f'На складе осталось всего {my_dict} ед.')
+                continue
+            elif inp_data in my_dict:
+                return inp_data
+            else:
+                print('Значение недопустимо')
+    return inp_data
+
+
+def view_warehouse():
+    print(f'На складе лежит: ')
+    for key in reestr:
+        print(reestr[key], 'в количестве -- ', reestr[key]['item'], 'ед')
+    print(f'Подготовлено к отгрузке: ')
+    for key in awaiting_shipment:
+        print(f'В подразделение - ', division[key])
+        for key_1 in awaiting_shipment[key]:
+            for key_2 in awaiting_shipment[key][key_1]:
+                print(reestr[int(key_2)], 'в количестве -- ', awaiting_shipment[key][key_1][key_2], 'ед')
+
+
+class Warehouse:
+    def __init__(self, wares):
+        self.wares = wares
+
+    def add_awaiting(self, select_product, num_product):
+        reestr[int(select_product)]['item'] = int(reestr[int(select_product)]['item']) - int(num_product)
+        if self.wares not in awaiting_shipment:
+            awaiting_shipment[self.wares] = {len(awaiting_shipment) + 1: {select_product: num_product}}
+        else:
+            awaiting_shipment[self.wares][len(awaiting_shipment) + 1] = {select_product: num_product}
+        view_warehouse()
+
+
+class OfficeEquipment:
+    def __init__(self, code=None, name=None, model=None, color=None, manufact=None, \
+                 price=None, item=None):
+        self.code = code
+        self.name = name
+        self.model = model
+        self.color = color
+        self.manufact = manufact
+        self.price = price
+        self.item = item
+
+    def input_product(self):
+        device_list = []
+        for i in self.__dict__.copy():
+            if i == 'code' or i == 'name':
+                continue
+            if i == 'item' or i == 'price':
+                device_list.append(input_int(my_dict=range(1, 100000000), name=i))
+                continue
+            device_list.append(input(f'Введите {i} -- '))
+        self.add_product(device_list)
+
+
+class Printer(OfficeEquipment):
+    def __init__(self, color_print=None):
+        super().__init__()
+        self.color_print = color_print
+
+    def add_product(self, args):
+        self.model, self.color, self.manufact, self.price, self.item, self.color_print = args
+        reestr[self.code] = self.__dict__
+
+
+class Scanner(OfficeEquipment):
+    def __init__(self, auto_feed_scan=None):
+        super().__init__()
+        self.auto_feed_scan = auto_feed_scan
+
+    def add_product(self, args):
+        self.model, self.color, self.manufact, self.price, self.item, self.auto_feed_scan = args
+        reestr[self.code] = self.__dict__
+
+
+class Xerox(OfficeEquipment):
+    def __init__(self, auto_feed_scan=None, fax=None):
+        super().__init__()
+        self.auto_feed_scan = auto_feed_scan
+        self.fax = fax
+
+    def add_product(self, args):
+        self.model, self.color, self.manufact, self.price, self.item, self.auto_feed_scan, self.fax = args
+        reestr[self.code] = self.__dict__
+
+
+device = Xerox()
+device.name, device.code = 'Ксерокс', 1
+device.add_product(['FD-4508', 'red', 'Filips', '12890', '27', 'yes', 'no'])
+view_warehouse()
+
+
+def incr_product():
+    for key in reestr:
+        print(reestr[key], 'в количестве -- ', reestr[key]['item'], 'ед')
+    product = input_int(my_dict=reestr, name='код продукта для пополнения: ')
+    inc_prod = input_int(my_dict=10000000, name='количество  ')
+    reestr[product]['item'] = int(reestr[product]['item']) + inc_prod
+
+
+ir = 0
+while ir == 0:
+    print(f'{"#" * 20} Выберите команду {"#" * 20}\n1. Пополнить склад товаром\n2. \
+Оформить отгрузку \n3. Включить в базу новый товар\n4. Показать склады\nquit - Выход\n{"#" * 58}')
+    action = input('Введите команду :')
+    if action == '1':
+        incr_product()
+    elif action == '2':
+        view_warehouse()
+        select_product = input_int(my_dict=reestr, name='номер отгружаемого товара ')
+        num_product = input_int(my_dict=int(reestr[select_product]['item']), name='количество ')
+        print(division)
+        select_division = input_int(my_dict=division, name='номер склада отгрузки')
+        divis = Warehouse(select_division)
+        divis.add_awaiting(select_product, num_product)
+    elif action == '3':
+        # select = input('Введите новый товар 1 - Сканер, 2 - Принтер, 3 - Ксерокс')
+        select = input_int(my_dict=range(1,4), name='новый товар 1 - Сканер, 2 - Принтер, 3 - Ксерокс')
+        if select == 1:
+            device = Scanner()
+            device.name, device.code = 'Сканер', len(reestr) + 1
+            device.input_product()
+        elif select == 2:
+            device = Printer()
+            device.name, device.code = 'Принтер', len(reestr) + 1
+            device.input_product()
+        elif select == 3:
+            device = Xerox()
+            device.name, device.code = 'Ксерокс', len(reestr) + 1
+            device.input_product()
+    elif action == '4':
+        view_warehouse()
+    elif action == 'quit':
+        break
+    else:
+        print('Неверная команда')
+
+
+# Реализовано:
+# Создан класс, описывающий склад. А также
+# класс «Оргтехника», который является базовым для классов-наследников. Эти классы —
+# конкретные типы оргтехники (принтер, сканер, ксерокс). В базовом классе определены
+# параметры, общие для приведённых типов. В классах-наследниках реализованы параметры,
+# уникальные для каждого типа оргтехники.
+#
+# Разработаны методы, которые отвечают за
+# приём оргтехники на склад и передачу в определённое подразделение компании. Для
+# хранения данных о наименовании и количестве единиц оргтехники,
+#
+# Реализован механизм валидации вводимых
+# пользователем данных. Например, для указания количества принтеров, отправленных на
+# склад, нельзя использовать строковый тип данных, нельзя отправить со склада больше чем находится,
+# нельзя выбирать товар и предприятие отсутствующее в базе.
